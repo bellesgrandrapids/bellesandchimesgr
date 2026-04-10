@@ -2,7 +2,7 @@ import json
 import os
 import time
 import re
-from datetime import datetime
+from datetime import datetime, timedelta
 from playwright.sync_api import sync_playwright
 
 # Load external config
@@ -225,26 +225,37 @@ def scrape_director_events(page):
     return events_data
 
 
-def scrape_michigan_ics_feed(page, existing_urls):
-    """Downloads ICS feed via the browser (bypasses IP-based blocking of plain HTTP clients),
-    filters for Michigan events, and excludes already-scraped local events."""
+def scrape_michigan_ics_feed(context, existing_urls):
+    """Downloads ICS feed, filters for Michigan, and excludes already-scraped local events."""
     upcoming_events = []
     past_events = []
     today = datetime.now().date()
 
-    print(f"\nNavigating to ICS feed via browser: {ICS_FEED_URL}...")
+    print(f"\nDownloading global ICS feed from: {ICS_FEED_URL}...")
     try:
-        page.goto(ICS_FEED_URL, wait_until="domcontentloaded", timeout=30000)
-        # The browser renders a plain-text ICS file inside <pre> or directly in <body>
-        ics_text = page.locator("pre, body").first.inner_text()
+        response = context.request.get(
+            ICS_FEED_URL,
+            headers={
+                "User-Agent": (
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                    "AppleWebKit/537.36 (KHTML, like Gecko) "
+                    "Chrome/124.0.0.0 Safari/537.36"
+                ),
+                "Accept": "text/calendar, text/plain, */*",
+            }
+        )
+        print(f"ICS feed status: {response.status} | size: {len(response.body())} bytes")
+        if response.status != 200:
+            print(f"[!] ICS feed returned {response.status} — skipping Michigan events.")
+            return None  # None signals "failed" so caller can preserve existing file
+        ics_text = response.text()
     except Exception as e:
-        print(f"[!] Failed to load ICS feed via browser: {e}")
-        return []
+        print(f"[!] ICS feed request error: {e}")
+        return None
 
-    print(f"ICS feed size: {len(ics_text)} chars")
     if "BEGIN:VCALENDAR" not in ics_text:
         print(f"[!] ICS response doesn't look like a calendar feed — got:\n{ics_text[:300]}")
-        return []
+        return None
 
     # Unfold ICS lines (ICS files wrap lines with a leading space)
     raw_lines = ics_text.replace('\r\n', '\n').split('\n')
@@ -362,15 +373,16 @@ def main():
         local_events = scrape_director_events(page)
         local_events = enrich_event_details(local_events, page, context, file_prefix="event")
 
-        # Fallback: load existing events.json and preserve any RECLAIM_DIRECTORS events
-        # that aren't in the fresh scrape (e.g. during the IFPA director-ID removal window).
-        # Capped at 30 days old so stale events don't accumulate forever.
         local_json_path = os.path.join(DATA_DIR, "events.json")
+
+        # Preserve any RECLAIM_DIRECTORS events from the existing file that aren't
+        # in the fresh director-page scrape (IFPA director-ID removal window).
+        # Capped at 30 days so stale events don't accumulate forever.
         try:
             with open(local_json_path, 'r', encoding='utf-8') as f:
                 existing_events = json.load(f)
             fresh_urls = {e['url'] for e in local_events}
-            cutoff = datetime.now().date() - __import__('datetime').timedelta(days=30)
+            cutoff = datetime.now().date() - timedelta(days=30)
             preserved = [
                 e for e in existing_events
                 if e.get('director') in RECLAIM_DIRECTORS
@@ -378,60 +390,72 @@ def main():
                 and datetime.strptime(e['date'], '%b %d, %Y').date() >= cutoff
             ]
             if preserved:
-                print(f"\nPreserving {len(preserved)} event(s) from existing events.json (not on director page, within 30 days):")
+                print(f"\nPreserving {len(preserved)} event(s) missing from director page (within 30 days):")
                 for e in preserved:
                     print(f"  -> {e['title']} ({e['date']})")
                 local_events.extend(preserved)
         except (FileNotFoundError, json.JSONDecodeError):
-            pass  # First run or corrupted file — no preserved events
+            pass  # First run or corrupted file
+
+        # Re-sort and re-ID after any preservation additions
+        upcoming_local = [e for e in local_events if e["status"] == "upcoming"]
+        past_local = sorted(
+            [e for e in local_events if e["status"] == "past"],
+            key=lambda x: datetime.strptime(x["date"], "%b %d, %Y"),
+            reverse=True
+        )[:10]
+        local_events = upcoming_local + past_local
+        for idx, event in enumerate(local_events):
+            event["id"] = idx
 
         with open(local_json_path, 'w', encoding='utf-8') as f:
             json.dump(local_events, f, indent=4)
         print(f"\nSuccess! Saved {len(local_events)} fully enriched local events to {local_json_path}")
 
         # Keep track of local URLs so we don't duplicate them in the state-wide feed
-        local_urls = set([e['url'] for e in local_events])
+        local_urls = {e['url'] for e in local_events}
 
         # ==========================================
         # 2. SCRAPE MICHIGAN ICS EVENTS
         # ==========================================
-        michigan_events = scrape_michigan_ics_feed(page, local_urls)
-        michigan_events = enrich_event_details(michigan_events, page, context, file_prefix="mi_event")
-
-        # Reclaim any Stacey Siegel events that IFPA temporarily de-listed from the
-        # director page (happens between event completion and results posting).
-        # These appear in the ICS feed as Michigan events but belong in events.json.
-        reclaimed = [e for e in michigan_events if e.get("director") in RECLAIM_DIRECTORS]
-        michigan_events = [e for e in michigan_events if e.get("director") not in RECLAIM_DIRECTORS]
-
-        if reclaimed:
-            print(f"\nReclaiming {len(reclaimed)} event(s) from Michigan feed back into local events (director match):")
-            for e in reclaimed:
-                print(f"  -> {e['title']} ({e['date']})")
-            local_events.extend(reclaimed)
-            # Re-sort: all upcoming first, then past descending, cap past at 10
-            upcoming_local = [e for e in local_events if e["status"] == "upcoming"]
-            past_local = sorted(
-                [e for e in local_events if e["status"] == "past"],
-                key=lambda x: datetime.strptime(x["date"], "%b %d, %Y"),
-                reverse=True
-            )[:10]
-            local_events = upcoming_local + past_local
-            for idx, event in enumerate(local_events):
-                event["id"] = idx
-            # Re-save events.json with the reclaimed events included
-            with open(local_json_path, 'w', encoding='utf-8') as f:
-                json.dump(local_events, f, indent=4)
-            print(f"Updated {local_json_path} with reclaimed events.")
-
-        # Re-number the remaining Michigan events
-        for idx, event in enumerate(michigan_events):
-            event["id"] = idx
-
         mi_json_path = os.path.join(DATA_DIR, "other_womens_events.json")
-        with open(mi_json_path, 'w', encoding='utf-8') as f:
-            json.dump(michigan_events, f, indent=4)
-        print(f"\nSuccess! Saved {len(michigan_events)} fully enriched Michigan events to {mi_json_path}")
+        michigan_events = scrape_michigan_ics_feed(context, local_urls)
+
+        if michigan_events is None:
+            # ICS fetch failed — leave existing other_womens_events.json untouched
+            print(f"\n[!] ICS fetch failed — keeping existing {mi_json_path} unchanged.")
+        else:
+            michigan_events = enrich_event_details(michigan_events, page, context, file_prefix="mi_event")
+
+            # Reclaim any Stacey Siegel events that IFPA temporarily de-listed from the
+            # director page (happens between event completion and results posting).
+            reclaimed = [e for e in michigan_events if e.get("director") in RECLAIM_DIRECTORS]
+            michigan_events = [e for e in michigan_events if e.get("director") not in RECLAIM_DIRECTORS]
+
+            if reclaimed:
+                print(f"\nReclaiming {len(reclaimed)} event(s) from Michigan feed back into local events:")
+                for e in reclaimed:
+                    print(f"  -> {e['title']} ({e['date']})")
+                local_events.extend(reclaimed)
+                upcoming_local = [e for e in local_events if e["status"] == "upcoming"]
+                past_local = sorted(
+                    [e for e in local_events if e["status"] == "past"],
+                    key=lambda x: datetime.strptime(x["date"], "%b %d, %Y"),
+                    reverse=True
+                )[:10]
+                local_events = upcoming_local + past_local
+                for idx, event in enumerate(local_events):
+                    event["id"] = idx
+                with open(local_json_path, 'w', encoding='utf-8') as f:
+                    json.dump(local_events, f, indent=4)
+                print(f"Updated {local_json_path} with reclaimed events.")
+
+            for idx, event in enumerate(michigan_events):
+                event["id"] = idx
+
+            with open(mi_json_path, 'w', encoding='utf-8') as f:
+                json.dump(michigan_events, f, indent=4)
+            print(f"\nSuccess! Saved {len(michigan_events)} fully enriched Michigan events to {mi_json_path}")
 
         browser.close()
 
