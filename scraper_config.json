@@ -1,5 +1,6 @@
 {
     "director_id": "3058",
+    "ics_file": "site_data/michigan_womens.ics",
     "ics_feed_url": "https://www.ifpapinball.com/calendar/feed/5ab7ff9f",
     "ics_feed_expires": "2026-04-19",
     "reclaim_directors": ["Stacey Siegel"]

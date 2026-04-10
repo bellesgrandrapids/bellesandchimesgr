@@ -10,6 +10,7 @@ with open("scraper_config.json", "r") as _f:
     _config = json.load(_f)
 
 DIRECTOR_ID = _config["director_id"]
+ICS_FILE = _config.get("ics_file", "site_data/michigan_womens.ics")
 ICS_FEED_URL = _config["ics_feed_url"]
 RECLAIM_DIRECTORS = set(_config.get("reclaim_directors", []))
 
@@ -231,30 +232,38 @@ def scrape_michigan_ics_feed(context, existing_urls):
     past_events = []
     today = datetime.now().date()
 
-    print(f"\nDownloading global ICS feed from: {ICS_FEED_URL}...")
-    try:
-        response = context.request.get(
-            ICS_FEED_URL,
-            headers={
-                "User-Agent": (
-                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                    "AppleWebKit/537.36 (KHTML, like Gecko) "
-                    "Chrome/124.0.0.0 Safari/537.36"
-                ),
-                "Accept": "text/calendar, text/plain, */*",
-            }
-        )
-        print(f"ICS feed status: {response.status} | size: {len(response.body())} bytes")
-        if response.status != 200:
-            print(f"[!] ICS feed returned {response.status} — skipping Michigan events.")
-            return None  # None signals "failed" so caller can preserve existing file
-        ics_text = response.text()
-    except Exception as e:
-        print(f"[!] ICS feed request error: {e}")
-        return None
+    # Prefer local .ics file (committed to repo) over fetching the URL.
+    # This avoids IP-based blocking of the IFPA calendar feed from cloud runners.
+    if os.path.exists(ICS_FILE):
+        print(f"\nReading local ICS file: {ICS_FILE}...")
+        with open(ICS_FILE, 'r', encoding='utf-8') as f:
+            ics_text = f.read()
+        print(f"ICS file size: {len(ics_text)} chars")
+    else:
+        print(f"\nNo local ICS file found at {ICS_FILE} — falling back to URL fetch...")
+        try:
+            response = context.request.get(
+                ICS_FEED_URL,
+                headers={
+                    "User-Agent": (
+                        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                        "AppleWebKit/537.36 (KHTML, like Gecko) "
+                        "Chrome/124.0.0.0 Safari/537.36"
+                    ),
+                    "Accept": "text/calendar, text/plain, */*",
+                }
+            )
+            print(f"ICS feed status: {response.status} | size: {len(response.body())} bytes")
+            if response.status != 200:
+                print(f"[!] ICS feed returned {response.status} — skipping Michigan events.")
+                return None
+            ics_text = response.text()
+        except Exception as e:
+            print(f"[!] ICS feed request error: {e}")
+            return None
 
     if "BEGIN:VCALENDAR" not in ics_text:
-        print(f"[!] ICS response doesn't look like a calendar feed — got:\n{ics_text[:300]}")
+        print(f"[!] ICS content doesn't look like a calendar feed — got:\n{ics_text[:300]}")
         return None
 
     # Unfold ICS lines (ICS files wrap lines with a leading space)
