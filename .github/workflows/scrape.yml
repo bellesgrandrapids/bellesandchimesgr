@@ -1,8 +1,8 @@
 name: Scrape IFPA & Update Site Data
 
 on:
-  schedule:
-    - cron: "0 */12 * * *"   # Every 12 hours
+  # schedule:
+  #   - cron: "0 */12 * * *"   # Every 12 hours — paused, running scraper locally for now
   workflow_dispatch:           # Allow manual runs from GitHub Actions tab
 
 jobs:

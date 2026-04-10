@@ -165,6 +165,34 @@ def enrich_event_details(events_data, page, context, file_prefix):
     return events_data
 
 
+def merge_with_existing(new_events, existing_by_url):
+    """Preserve previously-scraped enrichment data for events that already exist.
+    GitHub Actions cannot scrape IFPA event detail pages or Facebook (bot detection),
+    so we keep any real data from prior local runs rather than overwriting with defaults.
+    Only title, date, and status are always taken from the fresh scrape."""
+    ENRICHED_FIELDS = [
+        'facebook_url', 'website', 'image', 'start_time', 'description',
+        'event_name', 'location', 'address', 'director', 'ranking_system',
+        'registration_opens', 'qualifying_format', 'player_limit',
+        'registration_fee', 'finals_format',
+    ]
+    DEFAULT_SENTINEL = {'Check Tournament Website', 'default-pinball.jpg', 'other-default.png', ''}
+
+    for event in new_events:
+        existing = existing_by_url.get(event['url'])
+        if not existing:
+            continue
+        for field in ENRICHED_FIELDS:
+            new_val = event.get(field, '')
+            old_val = existing.get(field, '')
+            # Keep existing value if the new scrape produced a default/empty value
+            # and the existing value has real data
+            if new_val in DEFAULT_SENTINEL and old_val not in DEFAULT_SENTINEL:
+                event[field] = old_val
+
+    return new_events
+
+
 def scrape_director_events(page):
     """Phase 1: Gathers local director events from the IFPA page."""
     upcoming_events = []
@@ -380,14 +408,27 @@ def main():
         # 1. SCRAPE LOCAL DIRECTOR EVENTS
         # ==========================================
         local_events = scrape_director_events(page)
-        local_events = enrich_event_details(local_events, page, context, file_prefix="event")
 
         local_json_path = os.path.join(DATA_DIR, "events.json")
+
+        # Load existing data BEFORE enrichment so we can restore it if enrichment
+        # fails (GitHub Actions bot detection blocks IFPA event pages & Facebook).
+        try:
+            with open(local_json_path, 'r', encoding='utf-8') as f:
+                existing_local = json.load(f)
+            existing_local_by_url = {e['url']: e for e in existing_local}
+        except (FileNotFoundError, json.JSONDecodeError):
+            existing_local = []
+            existing_local_by_url = {}
+
+        local_events = enrich_event_details(local_events, page, context, file_prefix="event")
+        local_events = merge_with_existing(local_events, existing_local_by_url)
 
         # Preserve any RECLAIM_DIRECTORS events from the existing file that aren't
         # in the fresh director-page scrape (IFPA director-ID removal window).
         # Capped at 30 days so stale events don't accumulate forever.
         try:
+            existing_events = existing_local
             with open(local_json_path, 'r', encoding='utf-8') as f:
                 existing_events = json.load(f)
             fresh_urls = {e['url'] for e in local_events}
@@ -434,7 +475,15 @@ def main():
             # ICS fetch failed — leave existing other_womens_events.json untouched
             print(f"\n[!] ICS fetch failed — keeping existing {mi_json_path} unchanged.")
         else:
+            # Load existing michigan data for merge before enrichment
+            try:
+                with open(mi_json_path, 'r', encoding='utf-8') as f:
+                    existing_mi_by_url = {e['url']: e for e in json.load(f)}
+            except (FileNotFoundError, json.JSONDecodeError):
+                existing_mi_by_url = {}
+
             michigan_events = enrich_event_details(michigan_events, page, context, file_prefix="mi_event")
+            michigan_events = merge_with_existing(michigan_events, existing_mi_by_url)
 
             # Reclaim any Stacey Siegel events that IFPA temporarily de-listed from the
             # director page (happens between event completion and results posting).
@@ -459,6 +508,36 @@ def main():
                     json.dump(local_events, f, indent=4)
                 print(f"Updated {local_json_path} with reclaimed events.")
 
+            # Preserve past events from the existing other_womens_events.json that
+            # are no longer in the ICS file (ICS only shows upcoming/recent events).
+            new_urls = {e['url'] for e in michigan_events}
+            try:
+                with open(mi_json_path, 'r', encoding='utf-8') as f:
+                    existing_mi = json.load(f)
+                past_cutoff = datetime.now().date() - timedelta(days=60)
+                preserved_past = [
+                    e for e in existing_mi
+                    if e.get('status') == 'past'
+                    and e['url'] not in new_urls
+                    and e['url'] not in local_urls
+                    and datetime.strptime(e['date'], '%b %d, %Y').date() >= past_cutoff
+                ]
+                if preserved_past:
+                    print(f"\nPreserving {len(preserved_past)} past Michigan event(s) no longer in ICS:")
+                    for e in preserved_past:
+                        print(f"  -> {e['title']} ({e['date']})")
+                    michigan_events.extend(preserved_past)
+            except (FileNotFoundError, json.JSONDecodeError):
+                pass
+
+            # Sort: upcoming first, then past descending, cap past at 10
+            mi_upcoming = [e for e in michigan_events if e["status"] == "upcoming"]
+            mi_past = sorted(
+                [e for e in michigan_events if e["status"] == "past"],
+                key=lambda x: datetime.strptime(x["date"], "%b %d, %Y"),
+                reverse=True
+            )[:10]
+            michigan_events = mi_upcoming + mi_past
             for idx, event in enumerate(michigan_events):
                 event["id"] = idx
 
