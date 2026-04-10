@@ -232,8 +232,25 @@ def scrape_michigan_ics_feed(context, existing_urls):
     today = datetime.now().date()
 
     print(f"\nDownloading global ICS feed from: {ICS_FEED_URL}...")
-    response = context.request.get(ICS_FEED_URL)
+    response = context.request.get(
+        ICS_FEED_URL,
+        headers={
+            "User-Agent": (
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) "
+                "Chrome/124.0.0.0 Safari/537.36"
+            ),
+            "Accept": "text/calendar, text/plain, */*",
+        }
+    )
+    print(f"ICS feed status: {response.status} | size: {len(response.body())} bytes")
+    if response.status != 200:
+        print(f"[!] ICS feed request failed — skipping Michigan events.")
+        return []
     ics_text = response.text()
+    if "BEGIN:VCALENDAR" not in ics_text:
+        print(f"[!] ICS response doesn't look like a calendar feed — got:\n{ics_text[:300]}")
+        return []
 
     # Unfold ICS lines (ICS files wrap lines with a leading space)
     raw_lines = ics_text.replace('\r\n', '\n').split('\n')
