@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Belles & Chimes | Pinball Events</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;800&family=Pacifico&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --belles-blue: #6B9ECA;
+            --belles-black: #111111;
+            --bg-color: #f4f6f8;
+            --card-bg: #ffffff;
+            --text-main: #333333;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 0;
+            line-height: 1.6;
+        }
+
+        /* --- NAVIGATION & DROPDOWN --- */
+        nav {
+            background-color: var(--belles-black);
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            border-bottom: 3px solid var(--belles-blue);
+        }
+
+        .nav-links {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            gap: 2rem;
+            align-items: center;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .nav-links a {
+            color: #ffffff;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 1rem;
+            text-transform: uppercase;
+            transition: color 0.2s;
+            white-space: nowrap;
+            padding: 0.5rem 0;
+        }
+
+        .nav-links a:hover {
+            color: var(--belles-blue);
+        }
+
+        .dropdown {
+            position: relative;
+            display: inline-block;
+        }
+
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            background-color: var(--card-bg);
+            min-width: 240px;
+            box-shadow: 0px 8px 20px rgba(0,0,0,0.3);
+            z-index: 1;
+            border-radius: 8px;
+            overflow: hidden;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .dropdown-content a {
+            color: var(--belles-black);
+            padding: 12px 16px;
+            text-decoration: none;
+            display: block;
+            font-size: 0.9rem;
+            border-bottom: 1px solid #eaeaea;
+            transition: background-color 0.2s, color 0.2s;
+            white-space: normal;
+        }
+
+        .dropdown-content a:last-child {
+            border-bottom: none;
+        }
+
+        .dropdown-content a:hover {
+            background-color: var(--belles-blue);
+            color: var(--belles-black);
+        }
+
+        .dropdown:hover .dropdown-content {
+            display: block;
+        }
+
+        /* --- HEADER --- */
+        header {
+            text-align: center;
+            padding: 5rem 1rem;
+            background: linear-gradient(180deg, var(--belles-black) 0%, #2a2a2a 100%);
+            border-bottom: 6px solid var(--belles-blue);
+        }
+
+        h1 {
+            font-family: 'Pacifico', cursive;
+            font-size: 4.5rem;
+            margin: 0;
+            color: var(--belles-blue);
+            font-weight: normal;
+            line-height: 1.2;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        p.subtitle {
+            color: #ffffff;
+            font-size: 1.2rem;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            margin-top: 15px;
+        }
+
+        /* --- LAYOUT & SECTIONS --- */
+        .container {
+            max-width: 1200px;
+            margin: 3rem auto;
+            padding: 0 1.5rem;
+        }
+
+        .section-heading {
+            font-size: 2.2rem;
+            color: var(--belles-black);
+            border-bottom: 4px solid var(--belles-blue);
+            padding-bottom: 0.5rem;
+            margin-bottom: 2.5rem;
+            text-transform: uppercase;
+            text-align: center;
+        }
+
+        section {
+            margin-bottom: 5rem;
+            padding-top: 2rem;
+        }
+
+        /* --- ABOUT SECTION --- */
+        .about-content {
+            background-color: var(--card-bg);
+            padding: 3rem;
+            border-radius: 12px;
+            border: 3px solid var(--belles-black);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.08);
+            font-size: 1.1rem;
+            line-height: 1.8;
+            text-align: center;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        /* --- EVENTS SECTION --- */
+        .events-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+            gap: 2.5rem;
+        }
+
+        .event-card {
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            overflow: hidden;
+            border: 3px solid var(--belles-black);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .event-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 30px rgba(0,0,0,0.15);
+        }
+
+        .event-img {
+            width: 100%;
+            height: 220px;
+            object-fit: cover;
+            border-bottom: 3px solid var(--belles-black);
+            background-color: #e0e0e0;
+        }
+
+        .event-content {
+            padding: 1.5rem;
+            flex-grow: 1;
+        }
+
+        .event-title {
+            font-size: 1.4rem;
+            font-weight: 800;
+            color: var(--belles-black);
+            margin: 0;
+            line-height: 1.3;
+        }
+
+        .event-date-subtitle {
+            font-size: 1rem;
+            font-weight: 800;
+            color: var(--belles-blue);
+            margin-top: 0.25rem;
+            margin-bottom: 1.25rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            display: inline-block;
+            cursor: pointer;
+            padding: 4px 8px;
+            margin-left: -8px;
+            border-radius: 4px;
+            transition: background-color 0.2s, color 0.2s;
+        }
+
+        .event-date-subtitle:hover {
+            background-color: var(--belles-blue);
+            color: #ffffff;
+        }
+
+        .event-date-subtitle:hover::after {
+            content: " 📅 Add to Calendar";
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .event-date-subtitle.past {
+            color: #888888;
+            cursor: default;
+        }
+
+        .event-date-subtitle.past:hover {
+            background-color: transparent;
+            color: #888888;
+        }
+
+        .event-date-subtitle.past:hover::after {
+            content: "";
+        }
+
+        .event-detail {
+            font-size: 0.95rem;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+        }
+
+        .detail-label {
+            font-weight: 800;
+            color: var(--belles-blue);
+            min-width: 85px;
+        }
+
+        details {
+            margin-top: 1.25rem;
+            background: #f9f9f9;
+            border: 2px solid #eaeaea;
+            border-radius: 8px;
+            padding: 0.5rem 1rem;
+            transition: all 0.3s ease;
+        }
+
+        summary {
+            font-weight: 800;
+            cursor: pointer;
+            color: var(--belles-black);
+            outline: none;
+            padding: 0.5rem 0;
+            user-select: none;
+        }
+
+        summary::marker {
+            color: var(--belles-blue);
+        }
+
+        .expanded-info {
+            margin-top: 0.5rem;
+            font-size: 0.95rem;
+            line-height: 1.6;
+            border-top: 2px solid #eaeaea;
+            padding-top: 1rem;
+            padding-bottom: 0.5rem;
+            color: #444444;
+        }
+
+        .info-row {
+            margin-bottom: 0.5rem;
+        }
+
+        .info-desc {
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px dashed #cccccc;
+            white-space: pre-wrap;
+            text-align: left;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            padding: 1.25rem 1.5rem;
+            background-color: #f9f9f9;
+            border-top: 2px solid #eaeaea;
+        }
+
+        .event-btn {
+            flex: 1;
+            text-align: center;
+            background-color: var(--belles-black);
+            color: #ffffff;
+            text-decoration: none;
+            padding: 12px 10px;
+            border-radius: 6px;
+            font-weight: 800;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            transition: background-color 0.2s, transform 0.1s;
+        }
+
+        .event-btn:hover {
+            background-color: var(--belles-blue);
+            color: var(--belles-black);
+        }
+
+        .event-btn:active {
+            transform: scale(0.98);
+        }
+
+        .btn-secondary {
+            background-color: transparent;
+            color: var(--belles-black);
+            border: 2px solid var(--belles-black);
+        }
+
+        .btn-secondary:hover {
+            background-color: var(--belles-black);
+            color: #ffffff;
+        }
+
+        /* --- MOBILE RESPONSIVENESS --- */
+        @media (max-width: 768px) {
+            nav {
+                padding: 1rem;
+            }
+            .nav-links {
+                gap: 1rem;
+            }
+            .nav-links a {
+                font-size: 0.85rem;
+            }
+            header {
+                padding: 3rem 1rem;
+            }
+            h1 {
+                font-size: 3rem;
+            }
+            p.subtitle {
+                font-size: 1rem;
+                letter-spacing: 2px;
+            }
+            .events-grid {
+                grid-template-columns: 1fr;
+                gap: 1.5rem;
+            }
+            .about-content {
+                padding: 1.5rem;
+                font-size: 1rem;
+            }
+            .button-group {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <nav>
+        <ul class="nav-links">
+            <li><a href="index.html#events">BCGR Events</a></li>
+            <li><a href="michigan_events.html">Other Michigan Events</a></li>
+            <li><a href="gallery.html">Gallery</a></li>
+            <li><a href="index.html#about">About Us</a></li>
+            <li class="dropdown">
+                <a href="#">Other Chapters ▼</a>
+                <div class="dropdown-content">
+                    <a href="https://bellesandchimespinball.com/" target="_blank">National Organization</a>
+                    <a href="index.html">Grand Rapids</a>
+                    <a href="https://www.facebook.com/profile.php?id=61566618564689" target="_blank">Detroit Rock City</a>
+                    <a href="https://tcpinball.org/category/results/belles/" target="_blank">TC Pinball</a>
+                    <a href="https://www.lansingpinleague.com/lansing-lightning-flippers/" target="_blank">Lansing Lightning Flippers</a>
+                </div>
+            </li>
+        </ul>
+    </nav>
+
+    <header>
+        <h1>Belles & Chimes Grand Rapids</h1>
+        <p class="subtitle">A Pinball Club for Women</p>
+    </header>
+
+    <div class="container">
+
+        <section id="events">
+            <h2 class="section-heading">Upcoming Events</h2>
+            <div class="events-grid" id="upcoming-events-container">
+                <p style="text-align: center; width: 100%; font-weight: bold;">Loading tournament data...</p>
+            </div>
+
+            <h2 class="section-heading">Past Events</h2>
+            <div class="events-grid" id="past-events-container">
+                <p style="text-align: center; width: 100%; font-weight: bold;">Loading past events...</p>
+            </div>
+        </section>
+
+        <section id="about">
+            <h2 class="section-heading">About Us</h2>
+            <div class="about-content">
+                <p>Welcome to <strong>Belles & Chimes Grand Rapids</strong>, our local chapter of an inclusive pinball club founded on the idea of bringing women together through the silver ball. Whether you're a seasoned tournament veteran or you've never flipped a flipper before, you have a place here.</p>
+                <p>We meet monthly for IFPA-sanctioned tournaments and social hangouts. Our primary location is RLM Amusements in Grand Rapids, Michigan. Come learn some new flipper skills and make new friends!</p>
+            </div>
+        </section>
+
+    </div>
+
+    <script>
+        window.siteEventsData = [];
+
+        function formatIFPADescription(desc) {
+            if (!desc) return "No additional details provided.";
+
+            let formattedDesc = desc;
+            const headings = [
+                "Address", "Registration Opens", "Qualifying Format",
+                "Player Limit", "Registration Fee", "Finals Format",
+                "Tournament Format"
+            ];
+
+            headings.forEach(heading => {
+                const regex = new RegExp(`^\\s*${heading}\\s*$`, 'gm');
+                formattedDesc = formattedDesc.replace(regex, `<strong>${heading}:</strong>`);
+            });
+
+            formattedDesc = formattedDesc.replace(/\n{3,}/g, '\n\n');
+            return formattedDesc.trim();
+        }
+
+        fetch('site_data/events.json')
+            .then(response => {
+                if (!response.ok) throw new Error('Network response was not ok');
+                return response.json();
+            })
+            .then(data => {
+                window.siteEventsData = data;
+                const upcomingContainer = document.getElementById('upcoming-events-container');
+                const pastContainer = document.getElementById('past-events-container');
+
+                upcomingContainer.innerHTML = '';
+                pastContainer.innerHTML = '';
+
+                const upcomingEvents = data.filter(e => e.status === 'upcoming');
+                const pastEvents = data.filter(e => e.status === 'past');
+
+                function renderCards(eventsArray, container, isPastSection) {
+                    if (eventsArray.length === 0) {
+                        container.innerHTML = '<p style="text-align: center; width: 100%;">No events found.</p>';
+                        return;
+                    }
+
+                    eventsArray.forEach(event => {
+                        let buttonsHtml = '';
+                        if (event.facebook_url && event.facebook_url !== "TBA" && event.facebook_url !== "Check Tournament Website") {
+                            buttonsHtml += `<a href="${event.facebook_url}" target="_blank" class="event-btn">Facebook</a>`;
+                        }
+                        if (event.url) {
+                            buttonsHtml += `<a href="${event.url}" target="_blank" class="event-btn btn-secondary">IFPA Details</a>`;
+                        }
+
+                        const dateStyleClass = isPastSection ? 'event-date-subtitle past' : 'event-date-subtitle';
+                        const dateOnClick = isPastSection ? '' : `onclick="generateCalendarInvite(${event.id})" title="Click to add to calendar"`;
+                        const cleanedDescription = formatIFPADescription(event.description);
+
+                        // Apply Default 1:00 PM Time for local events if not found
+                        let startTime = event.start_time;
+                        if (!startTime || startTime === "Check Tournament Website" || startTime === "TBA") {
+                            startTime = "1:00 PM";
+                        }
+                        let timeDisplay = ` @ ${startTime}`;
+
+                        // Conditionally hide Location and Fee for Past Events
+                        let locationAndFeeHtml = '';
+
+                        if (!isPastSection) {
+                            let displayLocation = (event.location && event.location !== "Check Tournament Website" && event.location !== "TBA") ? event.location : "Venue TBA";
+
+                            // Local fee override logic
+                            let displayFee = event.registration_fee;
+                            if (displayFee === "Check Tournament Website" || displayFee === "TBA" || !displayFee) {
+                                displayFee = "$15 entrance fee + $2 (IFPA fee & B&C Operational fund)";
+                            }
+
+                            locationAndFeeHtml = `
+                                <div class="event-detail">
+                                    <span class="detail-label">LOCATION:</span>
+                                    <span>${displayLocation}</span>
+                                </div>
+                                <div class="event-detail">
+                                    <span class="detail-label">FEE:</span>
+                                    <span>${displayFee}</span>
+                                </div>
+                            `;
+                        }
+
+                        const card = document.createElement('div');
+                        card.className = 'event-card';
+
+                        card.innerHTML = `
+                            <img src="site_data/${event.image}" alt="${event.title}" class="event-img"
+                                 onerror="this.src='site_data/images/default.jpg'">
+
+                            <div class="event-content">
+                                <h2 class="event-title">${event.title}</h2>
+                                <div class="${dateStyleClass}" ${dateOnClick}>🗓️ ${event.date}${timeDisplay}</div>
+
+                                ${locationAndFeeHtml}
+
+                                <details>
+                                    <summary>Tournament Format & Info</summary>
+                                    <div class="expanded-info">
+                                        <div class="info-row"><strong>Qualifying:</strong> ${event.qualifying_format}</div>
+                                        <div class="info-row"><strong>Finals:</strong> ${event.finals_format}</div>
+                                        <div class="info-row"><strong>Director:</strong> ${event.director}</div>
+
+                                        <div class="info-desc">
+                                            <strong>Description:</strong><br><br>${cleanedDescription}
+                                        </div>
+                                    </div>
+                                    </details>
+                            </div>
+
+                            <div class="button-group">
+                                ${buttonsHtml}
+                            </div>
+                        `;
+                        container.appendChild(card);
+                    });
+                }
+
+                renderCards(upcomingEvents, upcomingContainer, false);
+                renderCards(pastEvents, pastContainer, true);
+            })
+            .catch(error => {
+                console.error('Error loading events:', error);
+                document.getElementById('upcoming-events-container').innerHTML =
+                    '<p style="color: red; text-align: center; width: 100%;">Failed to load events. Make sure the Python scraper has run successfully.</p>';
+            });
+
+        function generateCalendarInvite(eventId) {
+            const event = window.siteEventsData.find(e => e.id === eventId);
+            if (!event) return;
+
+            const d = new Date(event.date);
+            if (isNaN(d)) return;
+
+            // Format dates as YYYYMMDD
+            const startStr = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`;
+            d.setDate(d.getDate() + 1);
+            const endStr = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`;
+
+            let location = event.location !== "TBA" && event.location !== "Check Tournament Website" ? event.location : "";
+
+            // Escape commas and semicolons for strict ICS validation
+            location = location.replace(/,/g, '\\,').replace(/;/g, '\\;');
+            const summary = event.title.replace(/,/g, '\\,').replace(/;/g, '\\;');
+
+            let descriptionText = `IFPA Link: ${event.url}\\n`;
+
+            // Add Facebook Link if available
+            if (event.facebook_url && event.facebook_url !== "TBA" && event.facebook_url !== "Check Tournament Website" && event.facebook_url.trim() !== "") {
+                descriptionText += `Facebook Event: ${event.facebook_url}\\n`;
+            }
+            descriptionText += `\\n`;
+
+            if (event.description) {
+                // 1. Remove massive IFPA whitespace gaps
+                let cleanDesc = event.description.replace(/\n\s+/g, '\n').replace(/\n{3,}/g, '\n\n');
+                // 2. Format newlines for ICS and escape commas/semicolons
+                descriptionText += cleanDesc.replace(/\r?\n/g, '\\n').replace(/,/g, '\\,').replace(/;/g, '\\;');
+            }
+
+            const now = new Date();
+            const dtStamp = now.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+            const uid = `belles-chimes-${eventId}-${startStr}@pinball.local`;
+
+            // Removed METHOD:PUBLISH and Line Folding to prevent Android/Google Calendar breaking
+            const icsData = [
+                "BEGIN:VCALENDAR",
+                "VERSION:2.0",
+                "PRODID:-//Belles and Chimes//EN",
+                "CALSCALE:GREGORIAN",
+                "BEGIN:VEVENT",
+                `UID:${uid}`,
+                `DTSTAMP:${dtStamp}`,
+                `SUMMARY:${summary}`,
+                `DTSTART;VALUE=DATE:${startStr}`,
+                `DTEND;VALUE=DATE:${endStr}`,
+                `LOCATION:${location}`,
+                `DESCRIPTION:${descriptionText}`,
+                "END:VEVENT",
+                "END:VCALENDAR"
+            ].join("\r\n");
+
+            // Simplified MIME type
+            const blob = new Blob([icsData], { type: 'text/calendar' });
+            const link = document.createElement('a');
+            link.href = window.URL.createObjectURL(blob);
+            link.download = `${event.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.ics`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    </script>
+</body>
+</html>

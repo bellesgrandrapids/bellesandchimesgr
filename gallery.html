@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Belles & Chimes | Photo Gallery</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;800&family=Pacifico&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --belles-blue: #6B9ECA;
+            --belles-black: #111111;
+            --bg-color: #f4f6f8;
+            --card-bg: #ffffff;
+            --text-main: #333333;
+        }
+
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 0;
+            line-height: 1.6;
+        }
+
+        /* --- NAVIGATION --- */
+        nav {
+            background-color: var(--belles-black);
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            border-bottom: 3px solid var(--belles-blue);
+        }
+
+        .nav-links {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            gap: 2rem;
+            align-items: center;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .nav-links a {
+            color: #ffffff;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 1rem;
+            text-transform: uppercase;
+            transition: color 0.2s;
+            white-space: nowrap;
+            padding: 0.5rem 0;
+        }
+
+        .nav-links a:hover {
+            color: var(--belles-blue);
+        }
+
+        .dropdown {
+            position: relative;
+            display: inline-block;
+        }
+
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            background-color: var(--card-bg);
+            min-width: 240px;
+            box-shadow: 0px 8px 20px rgba(0,0,0,0.3);
+            z-index: 1;
+            border-radius: 8px;
+            overflow: hidden;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .dropdown-content a {
+            color: var(--belles-black);
+            padding: 12px 16px;
+            text-decoration: none;
+            display: block;
+            font-size: 0.9rem;
+            border-bottom: 1px solid #eaeaea;
+            transition: background-color 0.2s, color 0.2s;
+            white-space: normal;
+        }
+
+        .dropdown-content a:last-child {
+            border-bottom: none;
+        }
+
+        .dropdown-content a:hover {
+            background-color: var(--belles-blue);
+            color: var(--belles-black);
+        }
+
+        .dropdown:hover .dropdown-content {
+            display: block;
+        }
+
+        /* --- HEADER --- */
+        header {
+            text-align: center;
+            padding: 5rem 1rem;
+            background: linear-gradient(180deg, var(--belles-black) 0%, #2a2a2a 100%);
+            border-bottom: 6px solid var(--belles-blue);
+        }
+
+        h1 {
+            font-family: 'Pacifico', cursive;
+            font-size: 4.5rem;
+            margin: 0;
+            color: var(--belles-blue);
+            font-weight: normal;
+            line-height: 1.2;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        p.subtitle {
+            color: #ffffff;
+            font-size: 1.2rem;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            margin-top: 15px;
+        }
+
+        /* --- LAYOUT --- */
+        .container {
+            max-width: 1200px;
+            margin: 3rem auto;
+            padding: 0 1.5rem;
+        }
+
+        .section-heading {
+            font-size: 2.2rem;
+            color: var(--belles-black);
+            border-bottom: 4px solid var(--belles-blue);
+            padding-bottom: 0.5rem;
+            margin-bottom: 2.5rem;
+            text-transform: uppercase;
+            text-align: center;
+        }
+
+        /* --- CAROUSEL --- */
+        .carousel-wrapper {
+            position: relative;
+            max-width: 900px;
+            margin: 0 auto 4rem auto;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 3px solid var(--belles-black);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+            background-color: var(--belles-black);
+        }
+
+        .carousel-track {
+            display: flex;
+            transition: transform 0.5s ease-in-out;
+            height: 500px;
+        }
+
+        .carousel-slide {
+            min-width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .carousel-slide img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .carousel-btn {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(17, 17, 17, 0.7);
+            color: #ffffff;
+            border: 2px solid var(--belles-blue);
+            padding: 10px 15px;
+            cursor: pointer;
+            font-size: 1.5rem;
+            border-radius: 50%;
+            z-index: 10;
+            transition: background 0.2s, transform 0.1s;
+        }
+
+        .carousel-btn:hover {
+            background: var(--belles-blue);
+            color: var(--belles-black);
+        }
+
+        .carousel-btn:active {
+            transform: translateY(-50%) scale(0.95);
+        }
+
+        .carousel-btn.prev { left: 15px; }
+        .carousel-btn.next { right: 15px; }
+
+        /* --- GALLERY GRID --- */
+        .gallery-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 4rem;
+        }
+
+        .gallery-img {
+            width: 100%;
+            height: 250px;
+            object-fit: cover;
+            border-radius: 8px;
+            border: 3px solid var(--belles-black);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .gallery-img:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 25px rgba(0,0,0,0.2);
+            border-color: var(--belles-blue);
+        }
+
+        /* --- MOBILE RESPONSIVENESS --- */
+        @media (max-width: 768px) {
+            nav {
+                padding: 1rem;
+            }
+            .nav-links {
+                gap: 1rem;
+            }
+            .nav-links a {
+                font-size: 0.85rem;
+            }
+            header {
+                padding: 3rem 1rem;
+            }
+            h1 {
+                font-size: 3.5rem;
+            }
+            p.subtitle {
+                font-size: 1rem;
+                letter-spacing: 2px;
+            }
+            .carousel-track {
+                height: 300px;
+            }
+            .gallery-grid {
+                grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+                gap: 1rem;
+            }
+            .gallery-img {
+                height: 150px;
+            }
+            .carousel-btn {
+                padding: 8px 12px;
+                font-size: 1.2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <nav>
+        <ul class="nav-links">
+            <li><a href="index.html#events">Local Events</a></li>
+            <li><a href="michigan_events.html">Michigan Events</a></li>
+            <li><a href="gallery.html">Gallery</a></li>
+            <li><a href="index.html#about">About Us</a></li>
+            <li class="dropdown">
+                <a href="#">Other Chapters ▼</a>
+                <div class="dropdown-content">
+                    <a href="https://bellesandchimespinball.com/" target="_blank">National Organization</a>
+                    <a href="index.html">Grand Rapids</a>
+                    <a href="https://www.facebook.com/profile.php?id=61566618564689" target="_blank">Detroit Rock City</a>
+                    <a href="https://tcpinball.org/category/results/belles/" target="_blank">TC Pinball</a>
+                    <a href="https://www.lansingpinleague.com/lansing-lightning-flippers/" target="_blank">Lansing Lightning Flippers</a>
+                </div>
+            </li>
+        </ul>
+    </nav>
+
+    <header>
+        <h1>Photo Gallery</h1>
+        <p class="subtitle">Memories & Highlights</p>
+    </header>
+
+    <div class="container">
+
+        <div class="carousel-wrapper" id="carousel-wrapper" style="display: none;">
+            <button class="carousel-btn prev" id="prevBtn">&#10094;</button>
+            <button class="carousel-btn next" id="nextBtn">&#10095;</button>
+            <div class="carousel-track" id="carousel-track">
+                </div>
+        </div>
+
+        <h2 class="section-heading">All Photos</h2>
+        <div class="gallery-grid" id="photo-grid-container">
+            <p style="text-align: center; width: 100%; font-weight: bold;">Loading photos...</p>
+        </div>
+
+    </div>
+
+    <script>
+        fetch('site_data/gallery.json')
+            .then(response => {
+                if (!response.ok) throw new Error('Gallery network response was not ok');
+                return response.json();
+            })
+            .then(photos => {
+                const gridContainer = document.getElementById('photo-grid-container');
+                gridContainer.innerHTML = '';
+
+                if (photos.length === 0) {
+                    gridContainer.innerHTML = '<p style="text-align: center; width: 100%;">No photos in gallery yet.</p>';
+                    return;
+                }
+
+                // 1. POPULATE THE FULL GRID
+                photos.forEach(photo => {
+                    const img = document.createElement('img');
+                    img.src = photo.src;
+                    img.alt = photo.alt;
+                    img.className = 'gallery-img';
+                    img.loading = 'lazy';
+                    gridContainer.appendChild(img);
+                });
+
+                // 2. BUILD THE RANDOM CAROUSEL
+                if (photos.length > 1) {
+                    document.getElementById('carousel-wrapper').style.display = 'block';
+
+                    const shuffled = [...photos].sort(() => 0.5 - Math.random());
+                    const carouselPhotos = shuffled.slice(0, 5);
+                    const track = document.getElementById('carousel-track');
+
+                    carouselPhotos.forEach(photo => {
+                        const slide = document.createElement('div');
+                        slide.className = 'carousel-slide';
+                        slide.innerHTML = `<img src="${photo.src}" alt="${photo.alt}">`;
+                        track.appendChild(slide);
+                    });
+
+                    initCarousel();
+                }
+            })
+            .catch(error => {
+                console.error('Error loading gallery:', error);
+                document.getElementById('photo-grid-container').innerHTML =
+                    '<p style="color: red; text-align: center; width: 100%;">Failed to load photos. Did you run the builder.py script?</p>';
+            });
+
+        // Carousel Logic
+        function initCarousel() {
+            const track = document.getElementById('carousel-track');
+            const slides = document.querySelectorAll('.carousel-slide');
+            const prevBtn = document.getElementById('prevBtn');
+            const nextBtn = document.getElementById('nextBtn');
+
+            let currentIndex = 0;
+            let slideInterval;
+
+            function updateCarouselPosition() {
+                track.style.transform = `translateX(-${currentIndex * 100}%)`;
+            }
+
+            function moveToNextSlide() {
+                currentIndex = (currentIndex + 1) % slides.length;
+                updateCarouselPosition();
+            }
+
+            function moveToPrevSlide() {
+                currentIndex = (currentIndex - 1 + slides.length) % slides.length;
+                updateCarouselPosition();
+            }
+
+            nextBtn.addEventListener('click', () => {
+                moveToNextSlide();
+                resetInterval();
+            });
+
+            prevBtn.addEventListener('click', () => {
+                moveToPrevSlide();
+                resetInterval();
+            });
+
+            function startInterval() {
+                slideInterval = setInterval(moveToNextSlide, 4000);
+            }
+
+            function resetInterval() {
+                clearInterval(slideInterval);
+                startInterval();
+            }
+
+            startInterval();
+        }
+    </script>
+</body>
+</html>
