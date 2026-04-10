@@ -225,29 +225,23 @@ def scrape_director_events(page):
     return events_data
 
 
-def scrape_michigan_ics_feed(context, existing_urls):
-    """Downloads ICS feed, filters for Michigan, and excludes already-scraped local events."""
+def scrape_michigan_ics_feed(page, existing_urls):
+    """Downloads ICS feed via the browser (bypasses IP-based blocking of plain HTTP clients),
+    filters for Michigan events, and excludes already-scraped local events."""
     upcoming_events = []
     past_events = []
     today = datetime.now().date()
 
-    print(f"\nDownloading global ICS feed from: {ICS_FEED_URL}...")
-    response = context.request.get(
-        ICS_FEED_URL,
-        headers={
-            "User-Agent": (
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                "AppleWebKit/537.36 (KHTML, like Gecko) "
-                "Chrome/124.0.0.0 Safari/537.36"
-            ),
-            "Accept": "text/calendar, text/plain, */*",
-        }
-    )
-    print(f"ICS feed status: {response.status} | size: {len(response.body())} bytes")
-    if response.status != 200:
-        print(f"[!] ICS feed request failed — skipping Michigan events.")
+    print(f"\nNavigating to ICS feed via browser: {ICS_FEED_URL}...")
+    try:
+        page.goto(ICS_FEED_URL, wait_until="domcontentloaded", timeout=30000)
+        # The browser renders a plain-text ICS file inside <pre> or directly in <body>
+        ics_text = page.locator("pre, body").first.inner_text()
+    except Exception as e:
+        print(f"[!] Failed to load ICS feed via browser: {e}")
         return []
-    ics_text = response.text()
+
+    print(f"ICS feed size: {len(ics_text)} chars")
     if "BEGIN:VCALENDAR" not in ics_text:
         print(f"[!] ICS response doesn't look like a calendar feed — got:\n{ics_text[:300]}")
         return []
@@ -368,7 +362,29 @@ def main():
         local_events = scrape_director_events(page)
         local_events = enrich_event_details(local_events, page, context, file_prefix="event")
 
+        # Fallback: load existing events.json and preserve any RECLAIM_DIRECTORS events
+        # that aren't in the fresh scrape (e.g. during the IFPA director-ID removal window).
+        # Capped at 30 days old so stale events don't accumulate forever.
         local_json_path = os.path.join(DATA_DIR, "events.json")
+        try:
+            with open(local_json_path, 'r', encoding='utf-8') as f:
+                existing_events = json.load(f)
+            fresh_urls = {e['url'] for e in local_events}
+            cutoff = datetime.now().date() - __import__('datetime').timedelta(days=30)
+            preserved = [
+                e for e in existing_events
+                if e.get('director') in RECLAIM_DIRECTORS
+                and e['url'] not in fresh_urls
+                and datetime.strptime(e['date'], '%b %d, %Y').date() >= cutoff
+            ]
+            if preserved:
+                print(f"\nPreserving {len(preserved)} event(s) from existing events.json (not on director page, within 30 days):")
+                for e in preserved:
+                    print(f"  -> {e['title']} ({e['date']})")
+                local_events.extend(preserved)
+        except (FileNotFoundError, json.JSONDecodeError):
+            pass  # First run or corrupted file — no preserved events
+
         with open(local_json_path, 'w', encoding='utf-8') as f:
             json.dump(local_events, f, indent=4)
         print(f"\nSuccess! Saved {len(local_events)} fully enriched local events to {local_json_path}")
@@ -379,7 +395,7 @@ def main():
         # ==========================================
         # 2. SCRAPE MICHIGAN ICS EVENTS
         # ==========================================
-        michigan_events = scrape_michigan_ics_feed(context, local_urls)
+        michigan_events = scrape_michigan_ics_feed(page, local_urls)
         michigan_events = enrich_event_details(michigan_events, page, context, file_prefix="mi_event")
 
         # Reclaim any Stacey Siegel events that IFPA temporarily de-listed from the
