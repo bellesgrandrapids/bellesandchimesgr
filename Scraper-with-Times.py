@@ -5,14 +5,24 @@ import re
 from datetime import datetime
 from playwright.sync_api import sync_playwright
 
-# Configuration - Modular for any IFPA chapter globally
-DIRECTOR_ID = "3058"  # Grand Rapids Belles & Chimes
+# Load external config
+with open("scraper_config.json", "r") as _f:
+    _config = json.load(_f)
+
+DIRECTOR_ID = _config["director_id"]
+ICS_FEED_URL = _config["ics_feed_url"]
+RECLAIM_DIRECTORS = set(_config.get("reclaim_directors", []))
+
 IFPA_URL = f"https://www.ifpapinball.com/directors/view.php?d={DIRECTOR_ID}"
-ICS_FEED_URL = "https://www.ifpapinball.com/calendar/feed/4170d6fc"
 
 DATA_DIR = "site_data"
 IMAGE_DIR = os.path.join(DATA_DIR, "images")
 GALLERY_DIR = os.path.join(DATA_DIR, "gallery")
+
+# Warn if the ICS feed has a known expiry date
+_expires = _config.get("ics_feed_expires")
+if _expires and datetime.strptime(_expires, "%Y-%m-%d").date() < datetime.now().date():
+    print(f"[!] WARNING: ICS feed may be expired (ics_feed_expires: {_expires}). Update scraper_config.json.")
 
 # Ensure directories exist
 os.makedirs(IMAGE_DIR, exist_ok=True)
@@ -335,6 +345,36 @@ def main():
         # ==========================================
         michigan_events = scrape_michigan_ics_feed(context, local_urls)
         michigan_events = enrich_event_details(michigan_events, page, context, file_prefix="mi_event")
+
+        # Reclaim any Stacey Siegel events that IFPA temporarily de-listed from the
+        # director page (happens between event completion and results posting).
+        # These appear in the ICS feed as Michigan events but belong in events.json.
+        reclaimed = [e for e in michigan_events if e.get("director") in RECLAIM_DIRECTORS]
+        michigan_events = [e for e in michigan_events if e.get("director") not in RECLAIM_DIRECTORS]
+
+        if reclaimed:
+            print(f"\nReclaiming {len(reclaimed)} event(s) from Michigan feed back into local events (director match):")
+            for e in reclaimed:
+                print(f"  -> {e['title']} ({e['date']})")
+            local_events.extend(reclaimed)
+            # Re-sort: all upcoming first, then past descending, cap past at 10
+            upcoming_local = [e for e in local_events if e["status"] == "upcoming"]
+            past_local = sorted(
+                [e for e in local_events if e["status"] == "past"],
+                key=lambda x: datetime.strptime(x["date"], "%b %d, %Y"),
+                reverse=True
+            )[:10]
+            local_events = upcoming_local + past_local
+            for idx, event in enumerate(local_events):
+                event["id"] = idx
+            # Re-save events.json with the reclaimed events included
+            with open(local_json_path, 'w', encoding='utf-8') as f:
+                json.dump(local_events, f, indent=4)
+            print(f"Updated {local_json_path} with reclaimed events.")
+
+        # Re-number the remaining Michigan events
+        for idx, event in enumerate(michigan_events):
+            event["id"] = idx
 
         mi_json_path = os.path.join(DATA_DIR, "other_womens_events.json")
         with open(mi_json_path, 'w', encoding='utf-8') as f:

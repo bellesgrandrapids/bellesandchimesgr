@@ -86,27 +86,5 @@
         "player_limit": "No Limit",
         "registration_fee": "Check Tournament Website",
         "finals_format": "Match Play"
-    },
-    {
-        "image": "images/mi_event_4.jpg",
-        "location": "Grand Rapids, MI, United States",
-        "date": "Apr 04, 2026",
-        "url": "https://www.ifpapinball.com/tournaments/view.php?t=112706",
-        "title": "Belles & Chimes GR Pokemon Pinball Launch Party",
-        "status": "past",
-        "id": 4,
-        "facebook_url": "https://www.facebook.com/share/18KpWZbJ5K/",
-        "website": "",
-        "description": "Address\n\n4318 Plainfield Ave NE Ste K, Grand Rapids, MI 49525\n Registration Opens\nDay of Tournament\n Qualifying Format\nMax Matchplay Qualifying\n Player Limit\n\nNo Limit\n Registration Fee\nCheck Tournament Website\n Finals Format\nMatch Play",
-        "start_time": "Check Tournament Website",
-        "event_name": "Womens Division",
-        "address": "4318 Plainfield Ave NE Ste K, Grand Rapids, MI 49525",
-        "director": "Stacey Siegel",
-        "ranking_system": "Women",
-        "registration_opens": "Day of Tournament",
-        "qualifying_format": "Max Matchplay Qualifying",
-        "player_limit": "No Limit",
-        "registration_fee": "Check Tournament Website",
-        "finals_format": "Match Play"
     }
 ]
